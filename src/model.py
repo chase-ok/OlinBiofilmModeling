@@ -13,9 +13,9 @@ EMPTY = 0
 class CellModel2D(object):
 
     def __init__(self, numCells=(256, 256),
-                       boundaryLayerThickness=3,
+                       boundaryLayerThickness=4,
                        lightPenetrationDepth=4,
-                       mediaConcentration=3.0,
+                       mediaConcentration=1.0,
                        mediaPenetrationDepth=2,
                        divisionConstant=0.5):
         self.numCells = np.array(numCells, dtype=int)
@@ -43,6 +43,10 @@ class CellModel2D(object):
         for column in range(self.numColumns):
             if rdm.random() < probability:
                 self.biofilm[0, column] = ALIVE
+
+    def placeCellsRegularly(self, spacing=8):
+        for column in range(0, self.numColumns, spacing):
+            self.biofilm[0, column] = ALIVE
 
     def _calculateMedia(self):
         boundaryKernel = _makeCircularKernel(self.boundaryLayerThickness)
