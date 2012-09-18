@@ -7,11 +7,12 @@ from matplotlib import pyplot as plt
 def lightPenetrationVsMediaConcentration(valueFunc, 
                                          valueName, 
                                          numSteps=100,
+                                         numSamples=3,
                                          mediaPenetrationDepth=4,
                                          divisionConstant=0.5,
                                          initialCellSpacing=24):
     light = np.array([1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64])
-    media = np.array([0.01, 0.1, 0.2, 0.5, 1.0, 2.0, 4.0])
+    media = np.array([0.001, 0.005, 0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 4.0])
     lightMesh, mediaMesh = np.meshgrid(light, media)
     valueMesh = np.empty_like(lightMesh, dtype=float)
 
@@ -19,15 +20,18 @@ def lightPenetrationVsMediaConcentration(valueFunc,
         for row, mediaConcentration in enumerate(media):
             print "%s/%s" % (1 + row + column*len(media), valueMesh.size)
 
-            m = model.CellModel2D(numCells=(128, 128),
-                                  lightPenetrationDepth=lightPenetration,
-                                  mediaConcentration=mediaConcentration,
-                                  mediaPenetrationDepth=mediaPenetrationDepth,
-                                  divisionConstant=divisionConstant)
-            m.placeCellsRegularly(initialCellSpacing)
-            for _ in range(numSteps): m.step()
+            values = []
+            for _ in range(numSamples):
+                m = model.CellModel2D(numCells=(128, 128),
+                                      lightPenetrationDepth=lightPenetration,
+                                      mediaConcentration=mediaConcentration,
+                                      mediaPenetrationDepth=mediaPenetrationDepth,
+                                      divisionConstant=divisionConstant)
+                m.placeCellsRegularly(initialCellSpacing)
+                for _ in range(numSteps): m.step()
+                values.append(valueFunc(m))
 
-            value = valueFunc(m)
+            value = np.mean(values)
             print "Light=%s, Media=%s, %s=%s" % \
                   (lightPenetration, mediaConcentration, valueName, value)
             valueMesh[row, column] = value
@@ -57,10 +61,10 @@ def movies():
                                frameSize=tuple(m.numCells), 
                                isColor=False)
 
-    biofilm = makeWriter("biofilm.avi")
-    probs = makeWriter("probabilities.avi")
-    media = makeWriter("media.avi")
-    light = makeWriter("light.avi")
+    biofilm = makeWriter("../movies/biofilm.avi")
+    probs = makeWriter("../movies/probabilities.avi")
+    media = makeWriter("../movies/media.avi")
+    light = makeWriter("../movies/light.avi")
 
     for t in range(400):
         print t
@@ -73,5 +77,6 @@ def movies():
         light.write((m.light*255/m.light.max()).astype(np.uint8))
 
 if __name__ == '__main__':
-    lightPenetrationVsMediaConcentration(lambda m: m.perimeterToAreaRatio,
-                                         "Perimeter to Area Ratio")
+    #lightPenetrationVsMediaConcentration(lambda m: m.perimeterToAreaRatio,
+    #                                     "Perimeter to Area Ratio")
+    movies()
