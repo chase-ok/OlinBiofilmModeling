@@ -46,17 +46,70 @@ def lightPenetrationVsMediaConcentration(valueFunc,
     plt.title(valueName)
     plt.show()
 
+def parameterSweep():
+    def makeWriter(name):
+        return cv2.VideoWriter(name, 
+                               fps=30,
+                               fourcc=cv2.cv.CV_FOURCC(*"PIM1"),
+                               frameSize=(256, 256), 
+                               isColor=False)
+
+    i = 0
+    for light in [16, 32]:
+        for media in [1.0, 2.0]:
+            for boundary in [4, 8, 12]:
+                for penetration in [4, 8, 12]:
+                    for distancePower in [0.5, 1.0, 2.0]:
+                        for tensionPower in [0.5, 1.0, 2.0]:
+                            i += 1
+                            print i
+
+                            m = model.ProbabilisticModel2D(numCells=(256, 256),
+                                                           lightPenetrationDepth=light,
+                                                           mediaConcentration=media,
+                                                           boundaryLayerThickness=boundary,
+                                                           mediaPenetrationDepth=penetration,
+                                                           divisionConstant=1.0,
+                                                           blockSize=5,
+                                                           distancePower=distancePower,
+                                                           tensionPower=tensionPower)
+                            m.placeCellsRegularly(64)
+
+                            name = "-".join(map(str, [light, media, boundary, penetration, distancePower, tensionPower]))
+                            print name
+                            
+                            biofilm = makeWriter("../movies/%s-biofilm.avi" % name)
+                            probs = makeWriter("../movies/%s-probabilities.avi" % name)
+                            media = makeWriter("../movies/%s-media.avi" % name)
+                            light = makeWriter("../movies/%s-light.avi" % name)
+
+                            for t in range(1000):
+                                m.step()
+                                if t % 5: continue
+
+                                biofilm.write(m.biofilm.astype(np.uint8)*255)
+                                probs.write((m.divisionProbability*255/m.divisionProbability.max()).astype(np.uint8))
+                                media.write((m.media*255/m.media.max()).astype(np.uint8))
+                                light.write((m.light*255/m.light.max()).astype(np.uint8))
+    print "done!"
+
+
 def movies():
-    m = model.CellModel2D(numCells=(256, 256),
-                          lightPenetrationDepth=32,
-                          mediaConcentration=0.5,
-                          mediaPenetrationDepth=3,
-                          divisionConstant=0.5)
-    m.placeRandomCellsAtBottom(0.05)
+    m = model.ProbabilisticModel2D(numCells=(256, 256),
+                                   lightPenetrationDepth=32,
+                                   mediaConcentration=1.0,
+                                   boundaryLayerThickness=12,
+                                   mediaPenetrationDepth=8,
+                                   divisionConstant=2.0,
+                                   blockSize=5,
+                                   distancePower=0.5,
+                                   tensionPower=2.5)
+    #m.placeRandomCellsAtBottom(0.025)
+    m.placeCellsRegularly(64)
 
     def makeWriter(name):
         return cv2.VideoWriter(name, 
-                               fps=20,
+                               fps=30,
                                fourcc=cv2.cv.CV_FOURCC(*"PIM1"),
                                frameSize=tuple(m.numCells), 
                                isColor=False)
@@ -66,17 +119,23 @@ def movies():
     media = makeWriter("../movies/media.avi")
     light = makeWriter("../movies/light.avi")
 
-    for t in range(400):
+    for t in range(1000):
         print t
         m.step()
-        print "Ratio: ", m.perimeterToAreaRatio
+        if t % 5: continue
 
         biofilm.write(m.biofilm.astype(np.uint8)*255)
         probs.write((m.divisionProbability*255/m.divisionProbability.max()).astype(np.uint8))
         media.write((m.media*255/m.media.max()).astype(np.uint8))
         light.write((m.light*255/m.light.max()).astype(np.uint8))
 
+    print m.meanHeight
+    freq, sp = m.rowFFT(round(m.meanHeight))
+    plt.plot(freq, np.abs(sp))
+    plt.show()
+
 if __name__ == '__main__':
     #lightPenetrationVsMediaConcentration(lambda m: m.perimeterToAreaRatio,
     #                                     "Perimeter to Area Ratio")
-    movies()
+    #movies()
+    parameterSweep()
