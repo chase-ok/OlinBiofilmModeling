@@ -77,20 +77,20 @@ def parameterSweep():
 
                             name = "-".join(map(str, [light, media, boundary, penetration, distancePower, tensionPower]))
                             print name
-                            
-                            biofilm = makeWriter("../movies/%s-biofilm.avi" % name)
-                            probs = makeWriter("../movies/%s-probabilities.avi" % name)
-                            media = makeWriter("../movies/%s-media.avi" % name)
-                            light = makeWriter("../movies/%s-light.avi" % name)
+
+                            biofilmW = makeWriter("../movies/%s-biofilm.avi" % name)
+                            probsW = makeWriter("../movies/%s-probabilities.avi" % name)
+                            mediaW = makeWriter("../movies/%s-media.avi" % name)
+                            lightW = makeWriter("../movies/%s-light.avi" % name)
 
                             for t in range(1000):
                                 m.step()
                                 if t % 5: continue
 
-                                biofilm.write(m.biofilm.astype(np.uint8)*255)
-                                probs.write((m.divisionProbability*255/m.divisionProbability.max()).astype(np.uint8))
-                                media.write((m.media*255/m.media.max()).astype(np.uint8))
-                                light.write((m.light*255/m.light.max()).astype(np.uint8))
+                                biofilmW.write(m.biofilm.astype(np.uint8)*255)
+                                probsW.write((m.divisionProbability*255/m.divisionProbability.max()).astype(np.uint8))
+                                mediaW.write((m.media*255/m.media.max()).astype(np.uint8))
+                                lightW.write((m.light*255/m.light.max()).astype(np.uint8))
     print "done!"
 
 
