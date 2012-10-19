@@ -2,7 +2,7 @@
 import numpy as np
 import cv2
 import cv
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 import random as rdm
 import collections
 from itertools import product
@@ -81,11 +81,15 @@ class BiofilmModel(object):
 
     def run(self, stopCondition=stopOnTime(100), 
                   maxIterations=10000,
-                  videoOutput=None):
+                  videoOutput=None,
+                  showProgress=True):
         result = ModelResult(self, videoOutput=videoOutput)
         result.record(0)
 
         for time in range(1, maxIterations):
+            if showProgress and time % 10 == 0:
+                print "Step #%i" % time
+
             if stopCondition(time, self): break
             self.step()
             result.record(time)
@@ -219,17 +223,20 @@ def loadResult(fileName):
     with open(fileName, "rb") as f:
         return pickle.load(f)
 
+
 class TestPlan(object):
 
-    def __init__(self):
+    def __init__(self, processNumber=0, poolSize=1):
         self.paramValues = dict()
+        self.processNumber = processNumber
+        self.poolSize = poolSize
 
     def add(self, param, *values):
         self.paramValues.setdefault(param, []).extend(values)
         return self
 
     @property
-    def numModels(self):
+    def numTests(self):
         return np.product([len(v) for v in self.paramValues.itervalues()])
 
     @property
@@ -239,16 +246,18 @@ class TestPlan(object):
                                    in self.paramValues.iteritems())))
 
     def run(self, baseFilePath, createModel, *runArgs, **runKwargs):
-        total = self.numModels
         for i, params in enumerate(self.paramSets):
-            print "Starting %i/%i" % (i, total)
+            if i % self.poolSize != self.processNumber:
+                continue
+
+            print "Starting test %i!" % i
 
             model = createModel(**params)
             results = model.run(*runArgs, **runKwargs)
-
-            filePath = "%s-%i.results" % (baseFilePath, i)
-            results.save(filePath)
-            print "Done!"
+            results.save("%s-%i.results" % (baseFilePath, i))
+            
+            print "Done with test %i!" % i
+    
 
 class CAModel(BiofilmModel):
 
@@ -380,7 +389,7 @@ class MinimumDistanceModel(CAModel):
                 displacements.append(displacement + 1)
 
 class ProbabilisticModel(CAModel):
-    
+
     def __init__(self, **params):
         CAModel.__init__(self, **params)
 

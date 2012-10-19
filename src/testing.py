@@ -1,8 +1,10 @@
 
 import model
+import sys
 
-plan = model.TestPlan()
-plan.add("numCells", (128, 256))
+plan = model.TestPlan(processNumber=int(sys.argv[1]),
+                      poolSize=4)
+plan.add("numCells", (96, 256))
 plan.add("boundaryLayerThickness", 8, 12, 16)
 plan.add("lightPenetrationDepth", 16, None)
 plan.add("mediaConcentration", 1.0)
@@ -15,7 +17,8 @@ plan.add("blockSize", 5)
 
 plan.run("../results/probabalistic", 
          model.ProbabilisticModel,
-         stopCondition=model.stopOnHeight(100),
-         maxIterations=1500)
+         stopCondition=model.stopOnHeight(90),
+         maxIterations=1000,
+         showProgress=True)
 
-print "REALLY DONE!"
+print "PROCESS DONE!"
